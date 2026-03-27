@@ -1,0 +1,19 @@
+fastapi
+<<<<<<< HEAD
+uvicorn[standard]>=0.20.0
+python-multipart
+pydantic
+
+tensorflow==2.15.0
+=======
+uvicorn
+python-multipart
+pydantic
+
+tensorflow
+>>>>>>> c8bbe8e (Initial solar backend)
+keras
+ultralytics
+opencv-python
+Pillow
+numpy
