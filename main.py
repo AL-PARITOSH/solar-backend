@@ -1,14 +1,11 @@
 import os
 os.environ["TF_USE_LEGACY_KERAS"] = "1"
+os.environ["YOLO_CONFIG_DIR"] = "/tmp/Ultralytics"
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-<<<<<<< HEAD
-from typing import Dict
-=======
 from typing import Dict, Optional
->>>>>>> c8bbe8e (Initial solar backend)
 
 from io import BytesIO
 
@@ -21,8 +18,6 @@ import keras
 from keras.preprocessing import image as keras_image
 from ultralytics import YOLO
 
-<<<<<<< HEAD
-=======
 # -----------------------------#
 # CONFIG
 # -----------------------------#
@@ -51,38 +46,43 @@ MIN_SOLAR_AREA_FRAC = 0.10  # 10 %
 # FASTAPI APP + CORS
 # -----------------------------#
 
->>>>>>> c8bbe8e (Initial solar backend)
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-<<<<<<< HEAD
-    allow_origins=["*"],
-=======
     allow_origins=["*"],  # later restrict to your Vercel domain
->>>>>>> c8bbe8e (Initial solar backend)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-<<<<<<< HEAD
-=======
+@app.get("/")
+@app.head("/")
+def health_check():
+    return {"status": "ok", "message": "Solar Panel Detection API is running!"}
+
 # -----------------------------#
-# LOAD MODELS (once at startup)
+# LOAD MODELS (Lazy Loading)
 # -----------------------------#
 
-print("Loading CNN model...")
-cnn_model = keras.models.load_model(CNN_MODEL_PATH, compile=False)
-print("CNN model loaded.")
+cnn_model = None
+yolo_dust_clean = None
+yolo_snow_clean = None
 
-print("Loading YOLO dust/clean model...")
-yolo_dust_clean = YOLO(YOLO_DUST_CLEAN_PATH)
-print("YOLO dust/clean loaded.")
-
-print("Loading YOLO snow/clean model...")
-yolo_snow_clean = YOLO(YOLO_SNOW_CLEAN_PATH)
-print("YOLO snow/clean loaded.")
+def load_models():
+    global cnn_model, yolo_dust_clean, yolo_snow_clean
+    if cnn_model is None:
+        print("Loading CNN model...")
+        cnn_model = keras.models.load_model(CNN_MODEL_PATH, compile=False)
+        print("CNN model loaded.")
+    if yolo_dust_clean is None:
+        print("Loading YOLO dust/clean model...")
+        yolo_dust_clean = YOLO(YOLO_DUST_CLEAN_PATH)
+        print("YOLO dust/clean loaded.")
+    if yolo_snow_clean is None:
+        print("Loading YOLO snow/clean model...")
+        yolo_snow_clean = YOLO(YOLO_SNOW_CLEAN_PATH)
+        print("YOLO snow/clean loaded.")
 
 # -----------------------------#
 # UTILS (adapted from your Streamlit app)
@@ -189,7 +189,6 @@ def combined_inference(pil_img: Image.Image, conf_thres: float = 0.25):
 # RESPONSE MODEL
 # -----------------------------#
 
->>>>>>> c8bbe8e (Initial solar backend)
 class PredictionResponse(BaseModel):
     condition: str
     condition_confidence: float
@@ -202,35 +201,6 @@ class PredictionResponse(BaseModel):
     yolo_used_snow_model: bool
     is_solar_panel: bool
 
-<<<<<<< HEAD
-@app.get("/")
-async def health():
-    return {"status": "ok"}
-
-@app.post("/predict", response_model=PredictionResponse)
-async def predict_dummy(
-    file: UploadFile = File(...),
-    conf_thres: float = 0.25,
-):
-    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
-        raise HTTPException(status_code=400, detail="Unsupported file type")
-
-    # Just read the file so we exercise PIL, numpy, etc.
-    contents = await file.read()
-    _ = Image.open(BytesIO(contents)).convert("RGB")
-
-    return PredictionResponse(
-        condition="Clean",
-        condition_confidence=1.0,
-        p_clean=1.0,
-        p_dust=0.0,
-        p_snow=0.0,
-        dust_level="Low Dust",
-        snow_level="Low Snow",
-        yolo_counts={},
-        yolo_used_snow_model=False,
-        is_solar_panel=False,
-=======
 
 # -----------------------------#
 # API ENDPOINT
@@ -259,6 +229,8 @@ async def predict(
     file: UploadFile = File(...),
     conf_thres: float = 0.25,
 ):
+    load_models()
+
     # Accept only images
     if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
         raise HTTPException(status_code=400, detail="Unsupported file type")
@@ -310,5 +282,4 @@ async def predict(
         yolo_counts=counts,
         yolo_used_snow_model=used_snow,
         is_solar_panel=True,
->>>>>>> c8bbe8e (Initial solar backend)
     )
